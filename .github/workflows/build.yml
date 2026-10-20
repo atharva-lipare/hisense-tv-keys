@@ -1,0 +1,82 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - LICENSE
+      - .gitignore
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # The runner image ships an Android SDK; only the API 28 platform (and build-tools 34 if
+      # the image lacks it) needs fetching, and the platform is cached between runs.
+      - name: Cache Android 9 platform
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/platforms/android-28
+          key: android-platform-28
+
+      - name: Install SDK packages
+        run: |
+          need=()
+          [ -f "$ANDROID_SDK_ROOT/platforms/android-28/android.jar" ] || need+=("platforms;android-28")
+          [ -x "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" ] || need+=("build-tools;34.0.0")
+          if [ ${#need[@]} -gt 0 ]; then
+            yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "${need[@]}" > /dev/null
+          fi
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::KEYSTORE_B64 secret is not set; refusing to sign with a throwaway key"
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/tvkeys.keystore"
+
+      - name: Build
+        env:
+          KEYSTORE: ${{ runner.temp }}/tvkeys.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: bash build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tvkeys-apk
+          path: tvkeys.apk
+
+      # One release per versionName: bump versionCode/versionName in AndroidManifest.xml to
+      # publish a new one. Builds of an already-released version only update the artifact above.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' AndroidManifest.xml)
+          tag="v$version"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "release $tag already exists, skipping"
+          else
+            gh release create "$tag" tvkeys.apk --title "TV Keys $version" \
+              --notes "Signed build of $(git rev-parse --short HEAD). Install with \`adb install -r tvkeys.apk\`, then \`adb shell pm grant local.tvkeys android.permission.READ_LOGS\`."
+          fi

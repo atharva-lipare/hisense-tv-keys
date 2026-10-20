@@ -34,10 +34,21 @@ TV Keys works around both:
 - **Guard** — if the firmware's default app (e.g. official YouTube) still comes to the front within
   5 s of a remapped press, TV Keys brings the chosen app back.
 
+## Download
+
+Every push to `main` is built and signed by GitHub Actions (`.github/workflows/build.yml`). A new
+`versionName` in `AndroidManifest.xml` publishes a release with `tvkeys.apk` attached; other builds
+are available as the workflow's `tvkeys-apk` artifact.
+
 ## Build
 
 Needs a JDK (17 tested) and the Android SDK with `platforms;android-28` and
-`build-tools;34.0.0`, laid out as:
+`build-tools;34.0.0`.
+
+**Linux:** `bash build.sh` (uses `ANDROID_SDK_ROOT`, plus `KEYSTORE` / `KEYSTORE_PASSWORD` to
+sign with an existing key).
+
+**Windows:** `build.ps1`, with the JDK and SDK laid out as:
 
 ```
 <root>\jdk17\
