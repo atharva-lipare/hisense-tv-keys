@@ -1,0 +1,8 @@
+# Signing key: never commit it. build.ps1 creates a fresh one on first build.
+*.keystore
+*.jks
+
+# Build output
+build/
+*.apk
+*.idsig

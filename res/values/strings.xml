@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="service_desc">Opens SmartTube from the remote\'s YouTube button Stremio from its Netflix button and Jellyfin from its Prime Video button, and restores volume repeat while a volume button is held.</string>
+</resources>
