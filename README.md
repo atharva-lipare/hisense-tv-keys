@@ -12,6 +12,10 @@ PTMR.190127.037). Other Hisense models may use different keycodes.
 | Netflix | Stremio (`com.stremio.one`) | yes |
 | Prime Video | Jellyfin (`org.jellyfin.androidtv`) | no: the standby chip doesn't wake on it |
 
+The rest of the setup on this TV is documented in `docs/`:
+[debloat.md](docs/debloat.md) (what was disabled and how to undo it) and
+[launcher.md](docs/launcher.md) (Projectivy, and why the stock launcher stays enabled).
+
 ## Why it exists
 
 Normal button remappers (Key Mapper, Button Mapper, Projectivy's remapping) are accessibility
